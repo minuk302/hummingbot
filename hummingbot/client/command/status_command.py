@@ -1,4 +1,5 @@
 import asyncio
+import threading
 import time
 from collections import OrderedDict, deque
 from typing import TYPE_CHECKING, Dict, List
@@ -20,7 +21,7 @@ from hummingbot.logger.application_warning import ApplicationWarning
 from hummingbot.user.user_balances import UserBalances
 
 if TYPE_CHECKING:
-    from hummingbot.client.hummingbot_application import HummingbotApplication
+    from hummingbot.client.hummingbot_application import HummingbotApplication  # noqa: F401
 
 
 class StatusCommand:
@@ -70,13 +71,11 @@ class StatusCommand:
 
         paper_trade = "\n  Paper Trading Active: All orders are simulated, and no real orders are placed." if len(active_paper_exchanges) > 0 \
             else ""
-        app_warning = self.application_warning()
-        app_warning = "" if app_warning is None else app_warning
         if asyncio.iscoroutinefunction(self.strategy.format_status):
             st_status = await self.strategy.format_status()
         else:
             st_status = self.strategy.format_status()
-        status = paper_trade + "\n" + st_status + "\n" + app_warning
+        status = paper_trade + "\n" + st_status
         if self._pmm_script_iterator is not None and live is False:
             self._pmm_script_iterator.request_status()
         return status
@@ -93,10 +92,6 @@ class StatusCommand:
         self  # type: HummingbotApplication
     ) -> Dict[str, str]:
         invalid_conns = {}
-        if self.strategy_name == "celo_arb":
-            err_msg = await self.validate_n_connect_celo(True)
-            if err_msg is not None:
-                invalid_conns["celo"] = err_msg
         if not any([str(exchange).endswith("paper_trade") for exchange in required_exchanges]):
             connections = await UserBalances.instance().update_exchanges(self.client_config_map, exchanges=required_exchanges)
             invalid_conns.update({ex: err_msg for ex, err_msg in connections.items()
@@ -127,6 +122,10 @@ class StatusCommand:
 
     def status(self,  # type: HummingbotApplication
                live: bool = False):
+        if threading.current_thread() != threading.main_thread():
+            self.ev_loop.call_soon_threadsafe(self.status, live)
+            return
+
         safe_ensure_future(self.status_check_all(live=live), loop=self.ev_loop)
 
     async def status_check_all(self,  # type: HummingbotApplication
@@ -220,6 +219,5 @@ class StatusCommand:
                 self.notify(f"  - Connector check: {offline_market} is currently offline.")
             return False
 
-        self.application_warning()
         self.notify("  - All checks: Confirmed.")
         return True
