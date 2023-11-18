@@ -199,12 +199,12 @@ class BybitPerpetualAPIOrderBookDataSource(OrderBookTrackerDataSource):
         metadata = {
             "trading_pair": trading_pair,
             "data": snapshot["result"],
-            "timestamp_e6": int(float(snapshot["time_now"]) * 1e6)
+            "timestamp_e6": int(float(snapshot["time"]) * 1e6)
         }
 
         snapshot_msg = BybitPerpetualOrderBook.snapshot_message_from_exchange(
             msg=snapshot,
-            timestamp=float(snapshot["time_now"]),
+            timestamp=float(snapshot["time"]),
             metadata=metadata
         )
         order_book = self.order_book_create_function()
