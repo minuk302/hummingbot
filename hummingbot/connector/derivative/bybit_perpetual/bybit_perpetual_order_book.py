@@ -56,7 +56,7 @@ class BybitPerpetualOrderBook(OrderBook):
 
         msg.update({"asks": asks,
                     "bids": bids,
-                    "update_id": int(msg["timestamp_e6"])})
+                    "update_id": int(msg["ts"] if "ts" in msg else msg["time"]) * 10**6})
 
         return OrderBookMessage(
             message_type=OrderBookMessageType.SNAPSHOT,

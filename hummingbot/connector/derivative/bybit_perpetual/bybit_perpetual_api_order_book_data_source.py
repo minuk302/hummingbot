@@ -280,11 +280,11 @@ class BybitPerpetualAPIOrderBookDataSource(OrderBookTrackerDataSource):
                     if "success" in json_message:
                         if json_message["success"]:
                             self.logger().info(
-                                f"Successful subscription to the topic {json_message['request']['args']} on {url}")
+                                f"Successful subscription to the topic {json_message['op']} on {url}")
                         else:
                             self.logger().error(
                                 "There was an error subscribing to the topic "
-                                f"{json_message['request']['args']} ({json_message['ret_msg']}) on {url}")
+                                f"{json_message['op']} ({json_message['ret_msg']}) on {url}")
                     else:
                         topic = json_message["topic"]
                         topic = ".".join(topic.split(".")[:-1])
@@ -372,14 +372,14 @@ class BybitPerpetualAPIOrderBookDataSource(OrderBookTrackerDataSource):
                 if event_type == "snapshot":
                     snapshot_msg: OrderBookMessage = BybitPerpetualOrderBook.snapshot_message_from_exchange(
                         msg=order_book_message,
-                        timestamp=int(order_book_message["timestamp_e6"]) * 1e-6,
+                        timestamp=int(order_book_message["ts"]),
                         metadata={"trading_pair": trading_pair})
                     output.put_nowait(snapshot_msg)
 
                 if event_type == "delta":
                     diff_msg: OrderBookMessage = BybitPerpetualOrderBook.diff_message_from_exchange(
                         msg=order_book_message,
-                        timestamp=int(order_book_message["timestamp_e6"]) * 1e-6,
+                        timestamp=int(order_book_message["ts"]),
                         metadata={"trading_pair": trading_pair})
                     output.put_nowait(diff_msg)
             except asyncio.CancelledError:
