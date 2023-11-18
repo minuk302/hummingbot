@@ -174,7 +174,7 @@ class BybitPerpetualAPIOrderBookDataSource(OrderBookTrackerDataSource):
         else:
             raise ValueError(f"There is no symbol mapping for trading pair {trading_pair}")
 
-        params = {"symbol": symbol}
+        params = {"symbol": symbol, "category": "linear"}
 
         endpoint = CONSTANTS.ORDER_BOOK_ENDPOINT
         api_path = bybit_perpetual_utils.rest_api_path_for_endpoint(endpoint, trading_pair)
