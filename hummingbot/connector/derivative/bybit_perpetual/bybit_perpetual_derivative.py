@@ -796,15 +796,15 @@ class BybitPerpetualDerivative(ExchangeBase, PerpetualTrading):
         trading_rules = {}
         for instrument in instrument_info:
             try:
-                trading_pair = combine_to_hb_trading_pair(instrument['baseCoin'], instrument['quoteCoin'])
+                trading_pair = combine_to_hb_trading_pair(instrument['base_currency'], instrument['quote_currency'])
                 is_linear = bybit_utils.is_linear_perpetual(trading_pair)
-                collateral_token = instrument["quoteCoin"] if is_linear else instrument["baseCoin"]
+                collateral_token = instrument["quote_currency"] if is_linear else instrument["base_currency"]
                 trading_rules[trading_pair] = TradingRule(
                     trading_pair=trading_pair,
-                    min_order_size=Decimal(str(instrument["lotSizeFilter"]["minOrderQty"])),
-                    max_order_size=Decimal(str(instrument["lotSizeFilter"]["maxOrderQty"])),
-                    min_price_increment=Decimal(str(instrument["priceFilter"]["tickSize"])),
-                    min_base_amount_increment=Decimal(str(instrument["lotSizeFilter"]["qtyStep"])),
+                    min_order_size=Decimal(str(instrument["lot_size_filter"]["min_trading_qty"])),
+                    max_order_size=Decimal(str(instrument["lot_size_filter"]["max_trading_qty"])),
+                    min_price_increment=Decimal(str(instrument["price_filter"]["tick_size"])),
+                    min_base_amount_increment=Decimal(str(instrument["lot_size_filter"]["qty_step"])),
                     buy_order_collateral_token=collateral_token,
                     sell_order_collateral_token=collateral_token,
                 )
@@ -814,14 +814,14 @@ class BybitPerpetualDerivative(ExchangeBase, PerpetualTrading):
         return trading_rules
 
     async def _update_trading_rules(self):
-        params = {"category": "linear"}
+        params = {}
         symbols_response: Dict[str, Any] = await self._api_request(
             method="GET",
             endpoint=CONSTANTS.QUERY_SYMBOL_ENDPOINT,
             params=params,
         )
         self._trading_rules.clear()
-        self._trading_rules = self._format_trading_rules(symbols_response["result"]["list"])
+        self._trading_rules = self._format_trading_rules(symbols_response["result"])
 
     async def _trading_rules_polling_loop(self):
         """
@@ -1210,7 +1210,7 @@ class BybitPerpetualDerivative(ExchangeBase, PerpetualTrading):
         position_tasks = []
 
         for trading_pair in self._trading_pairs:
-            body_params = {"category": "linear", "symbol": await self._trading_pair_symbol(trading_pair)}
+            body_params = {"symbol": await self._trading_pair_symbol(trading_pair)}
             position_tasks.append(
                 asyncio.create_task(self._api_request(
                     method="GET",
@@ -1237,8 +1237,8 @@ class BybitPerpetualDerivative(ExchangeBase, PerpetualTrading):
             ex_trading_pair = data.get("symbol")
             hb_trading_pair = symbol_trading_pair_map.get(ex_trading_pair)
             position_side = PositionSide.LONG if data.get("side") == "Buy" else PositionSide.SHORT
-            unrealized_pnl = Decimal(str(data.get("unrealisedPnl")))
-            entry_price = Decimal(str(data.get("avgPrice")))
+            unrealized_pnl = Decimal(str(data.get("unrealised_pnl")))
+            entry_price = Decimal(str(data.get("entry_price")))
             amount = Decimal(str(data.get("size")))
             leverage = Decimal(str(data.get("leverage"))) if bybit_utils.is_linear_perpetual(hb_trading_pair) \
                 else Decimal(str(data.get("effective_leverage")))
