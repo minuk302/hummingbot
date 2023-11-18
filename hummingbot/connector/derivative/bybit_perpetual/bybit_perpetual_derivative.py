@@ -203,7 +203,7 @@ class BybitPerpetualDerivative(ExchangeBase, PerpetualTrading):
                     is_auth_required=True,
                 )
 
-                response_code = response["retCode"]
+                response_code = response["ret_code"]
 
                 if response_code not in [CONSTANTS.RET_CODE_OK, CONSTANTS.RET_CODE_MODE_NOT_MODIFIED]:
                     self.trigger_event(AccountEvent.PositionModeChangeFailed,
@@ -215,7 +215,7 @@ class BybitPerpetualDerivative(ExchangeBase, PerpetualTrading):
                                        ))
                     self.logger().debug(f"Bybit Perpetual encountered a problem switching position mode to "
                                         f"{position_mode} for {trading_pair}"
-                                        f" ({response['retCode']} - {response['ret_msg']})")
+                                        f" ({response['ret_code']} - {response['ret_msg']})")
                 else:
                     self.trigger_event(AccountEvent.PositionModeChangeSucceeded,
                                        PositionModeChangeEvent(
@@ -303,7 +303,7 @@ class BybitPerpetualDerivative(ExchangeBase, PerpetualTrading):
             resp = await self._api_request(
                 method="GET",
                 endpoint=CONSTANTS.SERVER_TIME_PATH_URL)
-            if "retCode" not in resp or resp["retCode"] != CONSTANTS.RET_CODE_OK:
+            if "ret_code" not in resp or resp["ret_code"] != CONSTANTS.RET_CODE_OK:
                 raise Exception()
         except asyncio.CancelledError:
             raise
@@ -376,7 +376,7 @@ class BybitPerpetualDerivative(ExchangeBase, PerpetualTrading):
 
         # Checks HTTP Status and checks if "result" field is in the response.
         # 0     - all OK
-        if response_status != 200 or "retCode" not in parsed_response:
+        if response_status != 200 or "ret_code" not in parsed_response:
             self.logger().error(f"Error fetching data from {url}. HTTP status is {response_status}. "
                                 f"Message: {parsed_response} "
                                 f"Params: {params} "
@@ -552,8 +552,8 @@ class BybitPerpetualDerivative(ExchangeBase, PerpetualTrading):
                 referer_header_required=True,
             )
 
-            if send_order_results["retCode"] != CONSTANTS.RET_CODE_OK:
-                if send_order_results["retCode"] == CONSTANTS.RET_CODE_POSITION_ZERO:
+            if send_order_results["ret_code"] != CONSTANTS.RET_CODE_OK:
+                if send_order_results["ret_code"] == CONSTANTS.RET_CODE_POSITION_ZERO:
                     order_update: OrderUpdate = OrderUpdate(
                         trading_pair=trading_pair,
                         update_timestamp=self.current_timestamp,
@@ -684,7 +684,7 @@ class BybitPerpetualDerivative(ExchangeBase, PerpetualTrading):
                 is_auth_required=True,
             )
 
-            response_code = response["retCode"]
+            response_code = response["ret_code"]
 
             if response_code != CONSTANTS.RET_CODE_OK:
                 if response_code == CONSTANTS.RET_CODE_ORDER_NOT_EXISTS:
@@ -700,7 +700,7 @@ class BybitPerpetualDerivative(ExchangeBase, PerpetualTrading):
                     self._client_order_tracker.process_order_update(order_update)
                 else:
                     raise IOError(f"Bybit Perpetual encountered a problem canceling the order"
-                                  f" ({response['retCode']} - {response['ret_msg']})")
+                                  f" ({response['ret_code']} - {response['ret_msg']})")
 
             return client_order_id
 
@@ -847,20 +847,17 @@ class BybitPerpetualDerivative(ExchangeBase, PerpetualTrading):
         local_asset_names = set(self._account_balances.keys())
         remote_asset_names = set()
 
-        wallet_balance: List[Dict[str, Any]] = await self._api_request(
+        wallet_balance: Dict[str, Dict[str, Any]] = await self._api_request(
             method="GET",
             endpoint=CONSTANTS.GET_WALLET_BALANCE_PATH_URL,
-            params={"accountType": "UNIFIED"},
             is_auth_required=True,
         )
 
-        if wallet_balance["retCode"] is CONSTANTS.RET_CODE_OK:
+        if wallet_balance["ret_code"] is CONSTANTS.RET_CODE_OK:
             if wallet_balance["result"] is not None:
-                for coin_balance_json in wallet_balance["result"]["list"][0]["coin"]:
-                    # fetch for each coin accordingly
-                    asset_name = coin_balance_json["coin"]
-                    self._account_balances[asset_name] = Decimal(str(coin_balance_json["walletBalance"]))
-                    self._account_available_balances[asset_name] = Decimal(str(coin_balance_json["availableToWithdraw"]))
+                for asset_name, balance_json in wallet_balance["result"].items():
+                    self._account_balances[asset_name] = Decimal(str(balance_json["wallet_balance"]))
+                    self._account_available_balances[asset_name] = Decimal(str(balance_json["available_balance"]))
                     remote_asset_names.add(asset_name)
 
             asset_names_to_remove = local_asset_names.difference(remote_asset_names)
@@ -869,8 +866,8 @@ class BybitPerpetualDerivative(ExchangeBase, PerpetualTrading):
                 del self._account_balances[asset_name]
         else:
             self.logger().error(
-                f"Error fetching balances. Response: {wallet_balance['retCode']} - {wallet_balance['ret_msg']}")
-            if wallet_balance['retCode'] in [CONSTANTS.RET_CODE_API_KEY_INVALID, CONSTANTS.RET_CODE_API_KEY_EXPIRED]:
+                f"Error fetching balances. Response: {wallet_balance['ret_code']} - {wallet_balance['ret_msg']}")
+            if wallet_balance['ret_code'] in [CONSTANTS.RET_CODE_API_KEY_INVALID, CONSTANTS.RET_CODE_API_KEY_EXPIRED]:
                 raise Exception("Cannot connect to Bybit Perpetual. Reason: API key invalid")
             else:
                 raise Exception(f"Cannot connect to Bybit Perpetual. Reason: {wallet_balance['ret_msg']}")
@@ -1282,7 +1279,7 @@ class BybitPerpetualDerivative(ExchangeBase, PerpetualTrading):
             body=body_params,
             is_auth_required=True)
 
-        if resp["retCode"] == CONSTANTS.RET_CODE_OK or (resp["retCode"] == CONSTANTS.RET_CODE_LEVERAGE_NOT_MODIFIED and resp["ret_msg"] == "leverage not modified"):
+        if resp["ret_code"] == CONSTANTS.RET_CODE_OK or (resp["ret_code"] == CONSTANTS.RET_CODE_LEVERAGE_NOT_MODIFIED and resp["ret_msg"] == "leverage not modified"):
             self._leverage[trading_pair] = leverage
             self.logger().info(f"Leverage Successfully set to {leverage} for {trading_pair}.")
         else:
