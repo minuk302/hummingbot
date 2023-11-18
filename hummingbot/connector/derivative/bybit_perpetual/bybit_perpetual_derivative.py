@@ -891,6 +891,11 @@ class BybitPerpetualDerivative(PerpetualDerivativePyBase):
                                             params={"category": "linear"})
         return exchange_info
 
+    async def _make_trading_rules_request(self) -> Any:
+        exchange_info = await self._api_get(path_url=self.trading_rules_request_path,
+                                            params={"category": "linear"})
+        return exchange_info
+
     @staticmethod
     def _format_ret_code_for_print(ret_code: Union[str, int]) -> str:
         return f"ret_code <{ret_code}>"
