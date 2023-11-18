@@ -106,12 +106,7 @@ class BybitPerpetualUserStreamDataSource(UserStreamTrackerDataSource):
         response: WSResponse = await ws.receive()
         message = response.data
 
-        if (
-            message["success"] is not True
-            or not message["request"]
-            or not message["request"]["op"]
-            or message["request"]["op"] != "auth"
-        ):
+        if message["success"] is not True:
             self.logger().error("Error authenticating the private websocket connection")
             raise IOError("Private websocket connection authentication failed")
 
