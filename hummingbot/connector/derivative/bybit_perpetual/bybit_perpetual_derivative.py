@@ -1231,17 +1231,16 @@ class BybitPerpetualDerivative(ExchangeBase, PerpetualTrading):
             else:
                 self.logger().error(f"Error fetching trades history. Response: {resp}")
 
-        def if_None(default, v):
-            return default if v is None else v
         for position in parsed_resps:
             data = position
             ex_trading_pair = data.get("symbol")
             hb_trading_pair = symbol_trading_pair_map.get(ex_trading_pair)
             position_side = PositionSide.LONG if data.get("side") == "Buy" else PositionSide.SHORT
-            unrealized_pnl = Decimal(if_None(0, data.get("unrealisedPnl")))
-            entry_price = Decimal(if_None(0, data.get("avgEntryPrice")))
-            amount = Decimal(if_None(0, str(data.get("size"))))
-            leverage = Decimal(if_None(0, str(data.get("leverage"))))
+            unrealized_pnl = Decimal(str(data.get("unrealisedPnl")))
+            entry_price = Decimal(str(data.get("avgPrice")))
+            amount = Decimal(str(data.get("size")))
+            leverage = Decimal(str(data.get("leverage"))) if bybit_utils.is_linear_perpetual(hb_trading_pair) \
+                else Decimal(str(data.get("effective_leverage")))
             pos_key = self.position_key(hb_trading_pair, position_side)
             if amount != s_decimal_0:
                 self._account_positions[pos_key] = Position(

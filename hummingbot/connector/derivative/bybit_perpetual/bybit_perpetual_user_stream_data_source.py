@@ -5,13 +5,11 @@ from typing import Any, Dict, Optional
 
 import aiohttp
 
-from hummingbot.connector.derivative.bybit_perpetual import (
-    bybit_perpetual_constants as CONSTANTS,
-    bybit_perpetual_utils,
-)
+from hummingbot.connector.derivative.bybit_perpetual import bybit_perpetual_constants as CONSTANTS
+from hummingbot.connector.derivative.bybit_perpetual import bybit_perpetual_utils
 from hummingbot.connector.derivative.bybit_perpetual.bybit_perpetual_auth import BybitPerpetualAuth
 from hummingbot.connector.derivative.bybit_perpetual.bybit_perpetual_websocket_adaptor import (
-    BybitPerpetualWebSocketAdaptor,
+    BybitPerpetualWebSocketAdaptor
 )
 from hummingbot.core.data_type.user_stream_tracker_data_source import UserStreamTrackerDataSource
 from hummingbot.logger import HummingbotLogger
@@ -66,7 +64,8 @@ class BybitPerpetualUserStreamDataSource(UserStreamTrackerDataSource):
             await ws.authenticate(auth_payload)
             auth_resp = await ws.receive_json()
 
-            if auth_resp["success"] is not True:
+            if auth_resp["success"] is not True or not auth_resp["request"] or not auth_resp["request"]["op"] or \
+                    auth_resp["request"]["op"] != "auth":
                 self.logger().error(f"Response: {auth_resp}", exc_info=True)
                 raise Exception("Could not authenticate websocket connection with Bybit Perpetual")
             else:
