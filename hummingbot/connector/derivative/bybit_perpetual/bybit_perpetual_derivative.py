@@ -321,6 +321,7 @@ class BybitPerpetualDerivative(PerpetualDerivativePyBase):
                 "category": "linear",
                 "symbol": exchange_symbol,
                 "limit": 200,
+                "execType": "Trade"
             }
             if self._last_trade_history_timestamp:
                 body_params["startTime"] = int(int(self._last_trade_history_timestamp) * 1e3)
@@ -482,7 +483,8 @@ class BybitPerpetualDerivative(PerpetualDerivativePyBase):
     async def _request_order_fills(self, order: InFlightOrder) -> Dict[str, Any]:
         exchange_symbol = await self.exchange_symbol_associated_to_pair(trading_pair=order.trading_pair)
         body_params = {
-            "order_id": order.exchange_order_id,
+            "category": "linear",
+            "orderId": order.exchange_order_id,
             "symbol": exchange_symbol,
         }
         res = await self._api_get(
@@ -818,12 +820,17 @@ class BybitPerpetualDerivative(PerpetualDerivativePyBase):
         return success, msg
 
     async def _fetch_last_fee_payment(self, trading_pair: str) -> Tuple[int, Decimal, Decimal]:
+        timestamp, funding_rate, payment = 0, Decimal("-1"), Decimal("-1")
+        return timestamp, funding_rate, payment
+        # can call /v5/execution/list to get my size and GET_LAST_FUNDING_RATE_PATH_URL for to get funding rate.
+        # I don't code it as I don't need this info.
         exchange_symbol = await self.exchange_symbol_associated_to_pair(trading_pair)
 
         params = {
             "category": "linear",
             "symbol": exchange_symbol,
             "limit": 1,
+            "execType": "Funding"
         }
         raw_response: Dict[str, Any] = await self._api_get(
             path_url=CONSTANTS.GET_LAST_FUNDING_RATE_PATH_URL,
