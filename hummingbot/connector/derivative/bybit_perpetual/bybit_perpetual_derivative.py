@@ -926,7 +926,6 @@ class BybitPerpetualDerivative(ExchangeBase, PerpetualTrading):
 
         for trading_pair in self._trading_pairs:
             body_params = {
-                "category": "linear",
                 "symbol": await self._trading_pair_symbol(trading_pair),
                 "limit": 200,
             }
@@ -947,8 +946,10 @@ class BybitPerpetualDerivative(ExchangeBase, PerpetualTrading):
         parsed_history_resps: List[Dict[str, Any]] = []
         for resp in raw_responses:
             if not isinstance(resp, Exception):
-                self._last_trade_history_timestamp = float(resp["time"])
-                trade_entries = resp["result"]["list"]
+                self._last_trade_history_timestamp = float(resp["time_now"])
+                trade_entries = (resp["result"]["trade_list"]
+                                 if "trade_list" in resp["result"]
+                                 else resp["result"]["data"])
                 if trade_entries:
                     parsed_history_resps.extend(trade_entries)
             else:
@@ -1085,14 +1086,14 @@ class BybitPerpetualDerivative(ExchangeBase, PerpetualTrading):
         :param order_msg: The trade event message payload
         """
 
-        client_order_id = str(trade_msg["orderLinkId"])
+        client_order_id = str(trade_msg["order_link_id"])
         if client_order_id in self._client_order_tracker.active_orders.keys():
             tracked_order = self._client_order_tracker.fetch_order(client_order_id)
 
-            trade_id: str = str(trade_msg["execId"])
+            trade_id: str = str(trade_msg["exec_id"])
 
             fee_asset = tracked_order.quote_asset
-            fee_amount = Decimal(trade_msg["execFee"])
+            fee_amount = Decimal(trade_msg["exec_fee"])
             position_side = trade_msg["side"]
             position_action = (PositionAction.OPEN
                                if (tracked_order.trade_type is TradeType.BUY and position_side == "Buy"
@@ -1108,17 +1109,17 @@ class BybitPerpetualDerivative(ExchangeBase, PerpetualTrading):
                 flat_fees=flat_fees,
             )
 
-            exex_price = Decimal(trade_msg["execPrice"])
+            exex_price = Decimal(trade_msg["exec_price"]) if "exec_price" in trade_msg else Decimal(trade_msg["price"])
 
             trade_update: TradeUpdate = TradeUpdate(
                 trade_id=trade_id,
                 client_order_id=client_order_id,
-                exchange_order_id=str(trade_msg["orderId"]),
+                exchange_order_id=str(trade_msg["order_id"]),
                 trading_pair=tracked_order.trading_pair,
                 fill_timestamp=self.current_timestamp,
                 fill_price=exex_price,
-                fill_base_amount=Decimal(trade_msg["execQty"]),
-                fill_quote_amount=exex_price * Decimal(trade_msg["execQty"]),
+                fill_base_amount=Decimal(trade_msg["exec_qty"]),
+                fill_quote_amount=exex_price * Decimal(trade_msg["exec_qty"]),
                 fee=fee,
             )
             self._client_order_tracker.process_trade_update(trade_update)
