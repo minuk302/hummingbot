@@ -821,7 +821,9 @@ class BybitPerpetualDerivative(PerpetualDerivativePyBase):
         exchange_symbol = await self.exchange_symbol_associated_to_pair(trading_pair)
 
         params = {
-            "symbol": exchange_symbol
+            "category": "linear",
+            "symbol": exchange_symbol,
+            "limit": 1,
         }
         raw_response: Dict[str, Any] = await self._api_get(
             path_url=CONSTANTS.GET_LAST_FUNDING_RATE_PATH_URL,
@@ -829,19 +831,19 @@ class BybitPerpetualDerivative(PerpetualDerivativePyBase):
             is_auth_required=True,
             trading_pair=trading_pair,
         )
-        data: Dict[str, Any] = raw_response["result"]
+        data: Dict[str, Any] = raw_response["result"][list][0]
 
         if not data:
             # An empty funding fee/payment is retrieved.
             timestamp, funding_rate, payment = 0, Decimal("-1"), Decimal("-1")
         else:
-            funding_rate: Decimal = Decimal(str(data["funding_rate"]))
+            funding_rate: Decimal = Decimal(str(data["fundingRate"]))
             position_size: Decimal = Decimal(str(data["size"]))
             payment: Decimal = funding_rate * position_size
             if bybit_utils.is_linear_perpetual(trading_pair):
-                timestamp: int = int(pd.Timestamp(data["exec_time"], tz="UTC").timestamp())
+                timestamp: int = int(pd.Timestamp(data["fundingRateTimestamp"], tz="UTC").timestamp())
             else:
-                timestamp: int = int(data["exec_timestamp"])
+                timestamp: int = int(data["fundingRateTimestamp"])
 
         return timestamp, funding_rate, payment
 

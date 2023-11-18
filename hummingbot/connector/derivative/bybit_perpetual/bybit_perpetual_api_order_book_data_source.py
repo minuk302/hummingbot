@@ -269,10 +269,10 @@ class BybitPerpetualAPIOrderBookDataSource(PerpetualAPIOrderBookDataSource):
     async def _order_book_snapshot(self, trading_pair: str) -> OrderBookMessage:
         snapshot_response = await self._request_order_book_snapshot(trading_pair)
         snapshot_data = snapshot_response["result"]
-        timestamp = float(snapshot_response["time_now"])
+        timestamp = float(snapshot_response["time"])
         update_id = self._nonce_provider.get_tracking_nonce(timestamp=timestamp)
 
-        bids, asks = self._get_bids_and_asks_from_rest_msg_data(snapshot_data)
+        bids, asks = snapshot_data["b"], snapshot_data["a"]
         order_book_message_content = {
             "trading_pair": trading_pair,
             "update_id": update_id,
@@ -305,25 +305,6 @@ class BybitPerpetualAPIOrderBookDataSource(PerpetualAPIOrderBookDataSource):
         )
 
         return data
-
-    @staticmethod
-    def _get_bids_and_asks_from_rest_msg_data(
-        snapshot: List[Dict[str, Union[str, int, float]]]
-    ) -> Tuple[List[Tuple[float, float]], List[Tuple[float, float]]]:
-        bisect_idx = 0
-        for i, row in enumerate(snapshot):
-            if row["side"] == "Sell":
-                bisect_idx = i
-                break
-        bids = [
-            (float(row["price"]), float(row["size"]))
-            for row in snapshot[:bisect_idx]
-        ]
-        asks = [
-            (float(row["price"]), float(row["size"]))
-            for row in snapshot[bisect_idx:]
-        ]
-        return bids, asks
 
     @staticmethod
     def _get_bids_and_asks_from_ws_msg_data(
