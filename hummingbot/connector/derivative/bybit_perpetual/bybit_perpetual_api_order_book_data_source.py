@@ -1,6 +1,6 @@
 import asyncio
 from decimal import Decimal
-from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple, Union
+from typing import TYPE_CHECKING, Any, Dict, List, Optional
 
 import pandas as pd
 
@@ -48,7 +48,7 @@ class BybitPerpetualAPIOrderBookDataSource(PerpetualAPIOrderBookDataSource):
             trading_pair=trading_pair,
             index_price=Decimal(str(general_info["indexPrice"])),
             mark_price=Decimal(str(general_info["markPrice"])),
-            next_funding_utc_timestamp=int(pd.Timestamp(general_info["nextFundingTime"]).timestamp()),
+            next_funding_utc_timestamp=int(general_info["nextFundingTime"]),
             rate=Decimal(str(general_info["fundingRate"])),
         )
         return funding_info
@@ -174,10 +174,8 @@ class BybitPerpetualAPIOrderBookDataSource(PerpetualAPIOrderBookDataSource):
         if event_type == "delta":
             symbol = raw_message["topic"].split(".")[-1]
             trading_pair = await self._connector.trading_pair_associated_to_exchange_symbol(symbol)
-            timestamp_us = int(raw_message["timestamp_e6"])
-            update_id = self._nonce_provider.get_tracking_nonce(timestamp=timestamp_us * 1e-6)
-            diffs_data = raw_message["data"]
-            bids, asks = self._get_bids_and_asks_from_ws_msg_data(diffs_data)
+            update_id = self._nonce_provider.get_tracking_nonce(timestamp=raw_message["ts"])
+            bids, asks = raw_message["data"]["b"], raw_message["data"]["a"]
             order_book_message_content = {
                 "trading_pair": trading_pair,
                 "update_id": update_id,
@@ -187,7 +185,7 @@ class BybitPerpetualAPIOrderBookDataSource(PerpetualAPIOrderBookDataSource):
             diff_message = OrderBookMessage(
                 message_type=OrderBookMessageType.DIFF,
                 content=order_book_message_content,
-                timestamp=timestamp_us * 1e-6,
+                timestamp=raw_message["ts"],
             )
             message_queue.put_nowait(diff_message)
 
@@ -294,26 +292,6 @@ class BybitPerpetualAPIOrderBookDataSource(PerpetualAPIOrderBookDataSource):
         )
 
         return data
-
-    @staticmethod
-    def _get_bids_and_asks_from_ws_msg_data(
-        snapshot: Dict[str, List[Dict[str, Union[str, int, float]]]]
-    ) -> Tuple[List[Tuple[float, float]], List[Tuple[float, float]]]:
-        bids = []
-        asks = []
-        for action, rows_list in snapshot.items():
-            if action not in ["delete", "update", "insert"]:
-                continue
-            is_delete = action == "delete"
-            for row_dict in rows_list:
-                row_price = row_dict["price"]
-                row_size = 0.0 if is_delete else row_dict["size"]
-                row_tuple = (row_price, row_size)
-                if row_dict["side"] == "Buy":
-                    bids.append(row_tuple)
-                else:
-                    asks.append(row_tuple)
-        return bids, asks
 
     async def _connected_websocket_assistant(self) -> WSAssistant:
         pass  # unused
