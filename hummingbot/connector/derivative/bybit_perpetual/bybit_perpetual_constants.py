@@ -36,8 +36,8 @@ QUERY_SYMBOL_ENDPOINT = {
     LINEAR_MARKET: f"{REST_API_VERSION}/market/instruments-info",
     NON_LINEAR_MARKET: f"{REST_API_VERSION}/market/instruments-info"}
 ORDER_BOOK_ENDPOINT = {
-    LINEAR_MARKET: f"{REST_API_VERSION}/market/orderbook",
-    NON_LINEAR_MARKET: f"{REST_API_VERSION}/market/orderbook"}
+    LINEAR_MARKET: f"{REST_API_VERSION}/public/orderBook/L2",
+    NON_LINEAR_MARKET: f"{REST_API_VERSION}/public/orderBook/L2"}
 SERVER_TIME_PATH_URL = {
     LINEAR_MARKET: f"{REST_API_VERSION}/market/time",
     NON_LINEAR_MARKET: f"{REST_API_VERSION}/market/time"
