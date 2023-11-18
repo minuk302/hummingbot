@@ -530,6 +530,7 @@ class BybitPerpetualDerivative(PerpetualDerivativePyBase):
     async def _request_order_status_data(self, tracked_order: InFlightOrder) -> Dict:
         exchange_symbol = await self.exchange_symbol_associated_to_pair(tracked_order.trading_pair)
         query_params = {
+            "category": "linear",
             "symbol": exchange_symbol,
             "orderLinkId": tracked_order.client_order_id
         }
