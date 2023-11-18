@@ -443,11 +443,10 @@ class BybitPerpetualDerivative(PerpetualDerivativePyBase):
             ex_trading_pair = data.get("symbol")
             hb_trading_pair = await self.trading_pair_associated_to_exchange_symbol(ex_trading_pair)
             position_side = PositionSide.LONG if data["side"] == "Buy" else PositionSide.SHORT
-            unrealized_pnl = Decimal(str(data["unrealised_pnl"]))
-            entry_price = Decimal(str(data["entry_price"]))
+            unrealized_pnl = Decimal(str(data["unrealisedPnl"]))
+            entry_price = Decimal(str(data["avgPrice"]))
             amount = Decimal(str(data["size"]))
-            leverage = Decimal(str(data["leverage"])) if bybit_utils.is_linear_perpetual(hb_trading_pair) \
-                else Decimal(str(data["effective_leverage"]))
+            leverage = Decimal(str(data["leverage"]))
             pos_key = self._perpetual_trading.position_key(hb_trading_pair, position_side)
             if amount != s_decimal_0:
                 position = Position(
@@ -696,19 +695,19 @@ class BybitPerpetualDerivative(PerpetualDerivativePyBase):
         """
         trading_rules = {}
         symbol_map = await self.trading_pair_symbol_map()
-        for instrument in instrument_info_dict["result"]:
+        for instrument in instrument_info_dict["result"]["list"]:
             try:
-                exchange_symbol = instrument["name"]
+                exchange_symbol = instrument["symbol"]
                 if exchange_symbol in symbol_map:
-                    trading_pair = combine_to_hb_trading_pair(instrument['base_currency'], instrument['quote_currency'])
+                    trading_pair = combine_to_hb_trading_pair(instrument['baseCoin'], instrument['quoteCoin'])
                     is_linear = bybit_utils.is_linear_perpetual(trading_pair)
-                    collateral_token = instrument["quote_currency"] if is_linear else instrument["base_currency"]
+                    collateral_token = instrument["quoteCoin"] if is_linear else instrument["baseCoin"]
                     trading_rules[trading_pair] = TradingRule(
                         trading_pair=trading_pair,
-                        min_order_size=Decimal(str(instrument["lot_size_filter"]["min_trading_qty"])),
-                        max_order_size=Decimal(str(instrument["lot_size_filter"]["max_trading_qty"])),
-                        min_price_increment=Decimal(str(instrument["price_filter"]["tick_size"])),
-                        min_base_amount_increment=Decimal(str(instrument["lot_size_filter"]["qty_step"])),
+                        min_order_size=Decimal(str(instrument["lotSizeFilter"]["minOrderQty"])),
+                        max_order_size=Decimal(str(instrument["lotSizeFilter"]["maxOrderQty"])),
+                        min_price_increment=Decimal(str(instrument["priceFilter"]["tickSize"])),
+                        min_base_amount_increment=Decimal(str(instrument["lotSizeFilter"]["qtyStep"])),
                         buy_order_collateral_token=collateral_token,
                         sell_order_collateral_token=collateral_token,
                     )
