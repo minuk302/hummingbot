@@ -119,6 +119,6 @@ async def get_current_server_time(
         throttler=throttler,
         domain=domain,
         method=RESTMethod.GET)
-    server_time = response["result"]["serverTime"]
+    server_time = float(response["result"]["timeNano"]) / float(10**6)
 
     return server_time
