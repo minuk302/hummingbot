@@ -33,8 +33,8 @@ LATEST_SYMBOL_INFORMATION_ENDPOINT = {
     LINEAR_MARKET: f"{REST_API_VERSION}/public/tickers",
     NON_LINEAR_MARKET: f"{REST_API_VERSION}/public/tickers"}
 QUERY_SYMBOL_ENDPOINT = {
-    LINEAR_MARKET: f"{REST_API_VERSION}/market/instruments-info",
-    NON_LINEAR_MARKET: f"{REST_API_VERSION}/market/instruments-info"}
+    LINEAR_MARKET: f"{REST_API_VERSION}/public/symbols",
+    NON_LINEAR_MARKET: f"{REST_API_VERSION}/public/symbols"}
 ORDER_BOOK_ENDPOINT = {
     LINEAR_MARKET: f"{REST_API_VERSION}/public/orderBook/L2",
     NON_LINEAR_MARKET: f"{REST_API_VERSION}/public/orderBook/L2"}

@@ -9,13 +9,10 @@ import aiohttp
 import pandas as pd
 
 import hummingbot.connector.derivative.bybit_perpetual.bybit_perpetual_utils as bybit_utils
-from hummingbot.connector.derivative.bybit_perpetual import (
-    bybit_perpetual_constants as CONSTANTS,
-    bybit_perpetual_utils,
-)
+from hummingbot.connector.derivative.bybit_perpetual import bybit_perpetual_constants as CONSTANTS, bybit_perpetual_utils
 from hummingbot.connector.derivative.bybit_perpetual.bybit_perpetual_order_book import BybitPerpetualOrderBook
 from hummingbot.connector.derivative.bybit_perpetual.bybit_perpetual_websocket_adaptor import (
-    BybitPerpetualWebSocketAdaptor,
+    BybitPerpetualWebSocketAdaptor
 )
 from hummingbot.core.api_throttler.async_throttler import AsyncThrottler
 from hummingbot.core.data_type.funding_info import FundingInfo
@@ -101,16 +98,16 @@ class BybitPerpetualAPIOrderBookDataSource(OrderBookTrackerDataSource):
 
         async with aiohttp.ClientSession() as client:
             async with throttler.execute_task(limit_id):
-                async with client.get(endpoint_url, params={"category": "linear"}) as response:
+                async with client.get(endpoint_url, params={}) as response:
                     if response.status == 200:
                         resp_json: Dict[str, Any] = await response.json()
 
                         cls._trading_pair_symbol_map[domain] = {
-                            instrument["symbol"]: f"{instrument['baseCoin']}-{instrument['quoteCoin']}"
-                            for instrument in resp_json["result"]["list"]
+                            instrument["name"]: f"{instrument['base_currency']}-{instrument['quote_currency']}"
+                            for instrument in resp_json["result"]
                             if (instrument["status"] == "Trading"
-                                and instrument["symbol"] == f"{instrument['baseCoin']}{instrument['quoteCoin']}"
-                                and bybit_perpetual_utils.is_linear_perpetual(f"{instrument['baseCoin']}-{instrument['quoteCoin']}"))
+                                and instrument["name"] == f"{instrument['base_currency']}{instrument['quote_currency']}"
+                                and bybit_perpetual_utils.is_linear_perpetual(f"{instrument['base_currency']}-{instrument['quote_currency']}"))
                         }
 
     @classmethod
