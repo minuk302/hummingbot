@@ -189,7 +189,7 @@ class BybitPerpetualDerivative(PerpetualDerivativePyBase):
             if response_code == CONSTANTS.RET_CODE_ORDER_NOT_EXISTS:
                 await self._order_tracker.process_order_not_found(order_id)
             formatted_ret_code = self._format_ret_code_for_print(response_code)
-            raise IOError(f"{formatted_ret_code} - {cancel_result['ret_msg']}")
+            raise IOError(f"{formatted_ret_code} - {cancel_result['retMsg']}")
 
         return True
 
@@ -206,18 +206,19 @@ class BybitPerpetualDerivative(PerpetualDerivativePyBase):
     ) -> Tuple[str, float]:
         position_idx = self._get_position_idx(trade_type, position_action)
         data = {
+            "category": "linear",
             "side": "Buy" if trade_type == TradeType.BUY else "Sell",
             "symbol": await self.exchange_symbol_associated_to_pair(trading_pair),
-            "qty": float(amount),
-            "time_in_force": CONSTANTS.DEFAULT_TIME_IN_FORCE,
-            "close_on_trigger": position_action == PositionAction.CLOSE,
-            "order_link_id": order_id,
-            "reduce_only": position_action == PositionAction.CLOSE,
-            "position_idx": position_idx,
-            "order_type": CONSTANTS.ORDER_TYPE_MAP[order_type],
+            "qty": str(amount),
+            "timeInForce": CONSTANTS.DEFAULT_TIME_IN_FORCE,
+            "closeOnTrigger": position_action == PositionAction.CLOSE,
+            "orderLinkId": order_id,
+            "reduceOnly": position_action == PositionAction.CLOSE,
+            "positionIdx": position_idx,
+            "orderType": CONSTANTS.ORDER_TYPE_MAP[order_type],
         }
         if order_type.is_limit_type():
-            data["price"] = float(price)
+            data["price"] = str(price)
 
         resp = await self._api_post(
             path_url=CONSTANTS.PLACE_ACTIVE_ORDER_PATH_URL,
@@ -230,9 +231,9 @@ class BybitPerpetualDerivative(PerpetualDerivativePyBase):
 
         if resp["retCode"] != CONSTANTS.RET_CODE_OK:
             formatted_ret_code = self._format_ret_code_for_print(resp['retCode'])
-            raise IOError(f"Error submitting order {order_id}: {formatted_ret_code} - {resp['ret_msg']}")
+            raise IOError(f"Error submitting order {order_id}: {formatted_ret_code} - {resp['retMsg']}")
 
-        return str(resp["result"]["order_id"]), self.current_timestamp
+        return str(resp["result"]["orderId"]), self.current_timestamp
 
     def _get_position_idx(self, trade_type: TradeType, position_action: PositionAction) -> int:
         if position_action == PositionAction.NIL:
@@ -395,7 +396,7 @@ class BybitPerpetualDerivative(PerpetualDerivativePyBase):
 
         if wallet_balance["retCode"] != CONSTANTS.RET_CODE_OK:
             formatted_ret_code = self._format_ret_code_for_print(wallet_balance['retCode'])
-            raise IOError(f"{formatted_ret_code} - {wallet_balance['ret_msg']}")
+            raise IOError(f"{formatted_ret_code} - {wallet_balance['retMsg']}")
 
         self._account_available_balances.clear()
         self._account_balances.clear()
@@ -582,8 +583,8 @@ class BybitPerpetualDerivative(PerpetualDerivativePyBase):
         ex_trading_pair = position_msg["symbol"]
         trading_pair = await self.trading_pair_associated_to_exchange_symbol(symbol=ex_trading_pair)
         position_side = PositionSide.LONG if position_msg["side"] == "Buy" else PositionSide.SHORT
-        position_value = Decimal(str(position_msg["position_value"]))
-        entry_price = Decimal(str(position_msg["entry_price"]))
+        position_value = Decimal(str(position_msg["positionValue"]))
+        entry_price = Decimal(str(position_msg["entryPrice"]))
         amount = Decimal(str(position_msg["size"]))
         leverage = Decimal(str(position_msg["leverage"]))
         unrealized_pnl = position_value - (amount * entry_price * leverage)
@@ -681,12 +682,10 @@ class BybitPerpetualDerivative(PerpetualDerivativePyBase):
         Updates account balances.
         :param wallet_msg: The account balance update message payload
         """
-        if "coin" in wallet_msg:  # non-linear
-            symbol = wallet_msg["coin"]
-        else:  # linear
-            symbol = "USDT"
-        self._account_balances[symbol] = Decimal(str(wallet_msg["walletBalance"]))
-        self._account_available_balances[symbol] = Decimal(str(wallet_msg["availableBalance"]))
+        for symbol_data_json in wallet_msg["coin"]:
+            symbol = symbol_data_json["coin"]
+            self._account_balances[symbol] = Decimal(str(symbol_data_json["walletBalance"]))
+            self._account_available_balances[symbol] = Decimal(str(symbol_data_json["availableToWithdraw"]))
 
     async def _format_trading_rules(self, instrument_info_dict: Dict[str, Any]) -> List[TradingRule]:
         """
@@ -813,11 +812,11 @@ class BybitPerpetualDerivative(PerpetualDerivativePyBase):
 
         success = False
         msg = ""
-        if resp["retCode"] == CONSTANTS.RET_CODE_OK or (resp["retCode"] == CONSTANTS.RET_CODE_LEVERAGE_NOT_MODIFIED and resp["ret_msg"] == "leverage not modified"):
+        if resp["retCode"] == CONSTANTS.RET_CODE_OK or (resp["retCode"] == CONSTANTS.RET_CODE_LEVERAGE_NOT_MODIFIED and resp["retMsg"] == "leverage not modified"):
             success = True
         else:
             formatted_ret_code = self._format_ret_code_for_print(resp['retCode'])
-            msg = f"{formatted_ret_code} - {resp['ret_msg']}"
+            msg = f"{formatted_ret_code} - {resp['retMsg']}"
 
         return success, msg
 
