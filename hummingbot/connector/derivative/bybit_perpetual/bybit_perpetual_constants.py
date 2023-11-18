@@ -44,8 +44,8 @@ LINEAR_MARKET = "linear"
 NON_LINEAR_MARKET = "non_linear"
 
 LATEST_SYMBOL_INFORMATION_ENDPOINT = {
-    LINEAR_MARKET: f"{REST_API_VERSION}/public/tickers",
-    NON_LINEAR_MARKET: f"{REST_API_VERSION}/public/tickers"}
+    LINEAR_MARKET: f"{REST_API_VERSION}/market/tickers",
+    NON_LINEAR_MARKET: f"{REST_API_VERSION}/market/tickers"}
 QUERY_SYMBOL_ENDPOINT = {
     LINEAR_MARKET: f"{REST_API_VERSION}/market/instruments-info",
     NON_LINEAR_MARKET: f"{REST_API_VERSION}/market/instruments-info"}

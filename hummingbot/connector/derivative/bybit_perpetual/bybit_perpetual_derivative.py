@@ -318,11 +318,12 @@ class BybitPerpetualDerivative(PerpetualDerivativePyBase):
         for trading_pair in self._trading_pairs:
             exchange_symbol = await self.exchange_symbol_associated_to_pair(trading_pair)
             body_params = {
+                "category": "linear",
                 "symbol": exchange_symbol,
                 "limit": 200,
             }
             if self._last_trade_history_timestamp:
-                body_params["start_time"] = int(int(self._last_trade_history_timestamp) * 1e3)
+                body_params["startTime"] = int(int(self._last_trade_history_timestamp) * 1e3)
 
             trade_history_tasks.append(
                 asyncio.create_task(self._api_get(
@@ -339,10 +340,8 @@ class BybitPerpetualDerivative(PerpetualDerivativePyBase):
         parsed_history_resps: List[Dict[str, Any]] = []
         for trading_pair, resp in zip(self._trading_pairs, raw_responses):
             if not isinstance(resp, Exception):
-                self._last_trade_history_timestamp = float(resp["time_now"])
-                trade_entries = (resp["result"]["trade_list"]
-                                 if "trade_list" in resp["result"]
-                                 else resp["result"]["data"])
+                self._last_trade_history_timestamp = float(resp["time"])
+                trade_entries = resp["result"]["list"]
                 if trade_entries:
                     parsed_history_resps.extend(trade_entries)
             else:
@@ -498,14 +497,14 @@ class BybitPerpetualDerivative(PerpetualDerivativePyBase):
         try:
             order_status_data = await self._request_order_status_data(tracked_order=tracked_order)
             order_msg = order_status_data["result"]
-            client_order_id = str(order_msg["order_link_id"])
+            client_order_id = str(order_msg["orderLinkId"])
 
             order_update: OrderUpdate = OrderUpdate(
                 trading_pair=tracked_order.trading_pair,
                 update_timestamp=self.current_timestamp,
-                new_state=CONSTANTS.ORDER_STATE[order_msg["order_status"]],
+                new_state=CONSTANTS.ORDER_STATE[order_msg["orderStatus"]],
                 client_order_id=client_order_id,
-                exchange_order_id=order_msg["order_id"],
+                exchange_order_id=order_msg["orderId"],
             )
 
             return order_update
@@ -527,10 +526,10 @@ class BybitPerpetualDerivative(PerpetualDerivativePyBase):
         exchange_symbol = await self.exchange_symbol_associated_to_pair(tracked_order.trading_pair)
         query_params = {
             "symbol": exchange_symbol,
-            "order_link_id": tracked_order.client_order_id
+            "orderLinkId": tracked_order.client_order_id
         }
         if tracked_order.exchange_order_id is not None:
-            query_params["order_id"] = tracked_order.exchange_order_id
+            query_params["orderId"] = tracked_order.exchange_order_id
 
         resp = await self._api_get(
             path_url=CONSTANTS.QUERY_ACTIVE_ORDER_PATH_URL,
@@ -608,7 +607,7 @@ class BybitPerpetualDerivative(PerpetualDerivativePyBase):
         :param trade_msg: The trade event message payload
         """
 
-        client_order_id = str(trade_msg["order_link_id"])
+        client_order_id = str(trade_msg["orderLinkId"])
         fillable_order = self._order_tracker.all_fillable_orders.get(client_order_id)
 
         if fillable_order is not None:
@@ -616,10 +615,10 @@ class BybitPerpetualDerivative(PerpetualDerivativePyBase):
             self._order_tracker.process_trade_update(trade_update)
 
     def _parse_trade_update(self, trade_msg: Dict, tracked_order: InFlightOrder) -> TradeUpdate:
-        trade_id: str = str(trade_msg["exec_id"])
+        trade_id: str = str(trade_msg["execId"])
 
         fee_asset = tracked_order.quote_asset
-        fee_amount = Decimal(trade_msg["exec_fee"])
+        fee_amount = Decimal(trade_msg["execFee"])
         position_side = trade_msg["side"]
         position_action = (PositionAction.OPEN
                            if (tracked_order.trade_type is TradeType.BUY and position_side == "Buy"
@@ -635,22 +634,20 @@ class BybitPerpetualDerivative(PerpetualDerivativePyBase):
             flat_fees=flat_fees,
         )
 
-        exec_price = Decimal(trade_msg["exec_price"]) if "exec_price" in trade_msg else Decimal(trade_msg["price"])
+        exec_price = Decimal(trade_msg["execPrice"])
         exec_time = (
-            trade_msg["exec_time"]
-            if "exec_time" in trade_msg
-            else pd.Timestamp(trade_msg["trade_time"]).timestamp()
+            trade_msg["execTime"]
         )
 
         trade_update: TradeUpdate = TradeUpdate(
             trade_id=trade_id,
             client_order_id=tracked_order.client_order_id,
-            exchange_order_id=str(trade_msg["order_id"]),
+            exchange_order_id=str(trade_msg["orderId"]),
             trading_pair=tracked_order.trading_pair,
             fill_timestamp=exec_time,
             fill_price=exec_price,
-            fill_base_amount=Decimal(trade_msg["exec_qty"]),
-            fill_quote_amount=exec_price * Decimal(trade_msg["exec_qty"]),
+            fill_base_amount=Decimal(trade_msg["execQty"]),
+            fill_quote_amount=exec_price * Decimal(trade_msg["execQty"]),
             fee=fee,
         )
 
@@ -661,8 +658,8 @@ class BybitPerpetualDerivative(PerpetualDerivativePyBase):
         Updates in-flight order and triggers cancellation or failure event if needed.
         :param order_msg: The order event message payload
         """
-        order_status = CONSTANTS.ORDER_STATE[order_msg["order_status"]]
-        client_order_id = str(order_msg["order_link_id"])
+        order_status = CONSTANTS.ORDER_STATE[order_msg["orderStatus"]]
+        client_order_id = str(order_msg["orderLinkId"])
         updatable_order = self._order_tracker.all_updatable_orders.get(client_order_id)
 
         if updatable_order is not None:
@@ -671,7 +668,7 @@ class BybitPerpetualDerivative(PerpetualDerivativePyBase):
                 update_timestamp=self.current_timestamp,
                 new_state=order_status,
                 client_order_id=client_order_id,
-                exchange_order_id=order_msg["order_id"],
+                exchange_order_id=order_msg["orderId"],
             )
             self._order_tracker.process_order_update(new_order_update)
 
@@ -684,8 +681,8 @@ class BybitPerpetualDerivative(PerpetualDerivativePyBase):
             symbol = wallet_msg["coin"]
         else:  # linear
             symbol = "USDT"
-        self._account_balances[symbol] = Decimal(str(wallet_msg["wallet_balance"]))
-        self._account_available_balances[symbol] = Decimal(str(wallet_msg["available_balance"]))
+        self._account_balances[symbol] = Decimal(str(wallet_msg["walletBalance"]))
+        self._account_available_balances[symbol] = Decimal(str(wallet_msg["availableBalance"]))
 
     async def _format_trading_rules(self, instrument_info_dict: Dict[str, Any]) -> List[TradingRule]:
         """
@@ -718,9 +715,9 @@ class BybitPerpetualDerivative(PerpetualDerivativePyBase):
     def _initialize_trading_pair_symbols_from_exchange_info(self, exchange_info: Dict[str, Any]):
         mapping = bidict()
         for symbol_data in filter(bybit_utils.is_exchange_information_valid, exchange_info["result"]):
-            exchange_symbol = symbol_data["name"]
-            base = symbol_data["base_currency"]
-            quote = symbol_data["quote_currency"]
+            exchange_symbol = symbol_data["symbol"]
+            base = symbol_data["baseCoin"]
+            quote = symbol_data["quoteCoin"]
             trading_pair = combine_to_hb_trading_pair(base, quote)
             if trading_pair in mapping.inverse:
                 self._resolve_trading_pair_symbols_duplicate(mapping, exchange_symbol, base, quote)
@@ -748,14 +745,14 @@ class BybitPerpetualDerivative(PerpetualDerivativePyBase):
 
     async def _get_last_traded_price(self, trading_pair: str) -> float:
         exchange_symbol = await self.exchange_symbol_associated_to_pair(trading_pair)
-        params = {"symbol": exchange_symbol}
+        params = {"category": "linear", "symbol": exchange_symbol}
 
         resp_json = await self._api_get(
             path_url=CONSTANTS.LATEST_SYMBOL_INFORMATION_ENDPOINT,
             params=params,
         )
 
-        price = float(resp_json["result"][0]["last_price"])
+        price = float(resp_json["result"]["list"][0]["lastPrice"])
         return price
 
     async def _trading_pair_position_mode_set(self, mode: PositionMode, trading_pair: str) -> Tuple[bool, str]:
