@@ -768,7 +768,7 @@ class BybitPerpetualDerivative(PerpetualDerivativePyBase):
 
         if is_linear:
             exchange_symbol = await self.exchange_symbol_associated_to_pair(trading_pair)
-            data = {"symbol": exchange_symbol, "mode": api_mode}
+            data = {"category": "linear", "symbol": exchange_symbol, "mode": api_mode}
 
             response = await self._api_post(
                 path_url=CONSTANTS.SET_POSITION_MODE_URL,
@@ -780,7 +780,7 @@ class BybitPerpetualDerivative(PerpetualDerivativePyBase):
 
             if response_code not in [CONSTANTS.RET_CODE_OK, CONSTANTS.RET_CODE_MODE_NOT_MODIFIED]:
                 formatted_ret_code = self._format_ret_code_for_print(response_code)
-                msg = f"{formatted_ret_code} - {response['ret_msg']}"
+                msg = f"{formatted_ret_code} - {response['retMsg']}"
                 success = False
         else:
             #  Inverse Perpetuals don't have set_position_mode()
