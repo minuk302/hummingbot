@@ -194,7 +194,7 @@ class BybitPerpetualDerivative(ExchangeBase, PerpetualTrading):
                     raise Exception("Inverse Perpetuals don't allow for a position mode change.")
 
                 symbol = await self._trading_pair_symbol(trading_pair)
-                body_params = {"symbol": symbol, "mode": mode}
+                body_params = {"category": "linear", "symbol": symbol, "mode": mode}
 
                 response = await self._api_request(
                     method="POST",
@@ -211,11 +211,11 @@ class BybitPerpetualDerivative(ExchangeBase, PerpetualTrading):
                                            self.current_timestamp,
                                            trading_pair,
                                            position_mode,
-                                           response['ret_msg']
+                                           response['retMsg']
                                        ))
                     self.logger().debug(f"Bybit Perpetual encountered a problem switching position mode to "
                                         f"{position_mode} for {trading_pair}"
-                                        f" ({response['retCode']} - {response['ret_msg']})")
+                                        f" ({response['retCode']} - {response['retMsg']})")
                 else:
                     self.trigger_event(AccountEvent.PositionModeChangeSucceeded,
                                        PositionModeChangeEvent(
