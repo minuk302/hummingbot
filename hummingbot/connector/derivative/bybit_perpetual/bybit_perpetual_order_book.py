@@ -49,10 +49,7 @@ class BybitPerpetualOrderBook(OrderBook):
             msg.update(metadata)
 
         entries = msg["data"]["order_book"] if "order_book" in msg["data"] else msg["data"]
-        if "a" in entries and "b" in entries:
-            bids, asks = entries["b"], entries["a"]
-        else:
-            bids, asks = cls._bids_and_asks_from_entries(entries)
+        bids, asks = cls._bids_and_asks_from_entries(entries)
 
         msg.update({"asks": asks,
                     "bids": bids,
