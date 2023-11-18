@@ -42,15 +42,14 @@ class BybitPerpetualAPIOrderBookDataSource(PerpetualAPIOrderBookDataSource):
 
     async def get_funding_info(self, trading_pair: str) -> FundingInfo:
         funding_info_response = await self._request_complete_funding_info(trading_pair)
-        general_info = funding_info_response[0]["result"][0]
-        predicted_funding = funding_info_response[1]["result"]
+        general_info = funding_info_response[0]["result"]["list"][0]
 
         funding_info = FundingInfo(
             trading_pair=trading_pair,
-            index_price=Decimal(str(general_info["index_price"])),
-            mark_price=Decimal(str(general_info["mark_price"])),
-            next_funding_utc_timestamp=int(pd.Timestamp(general_info["next_funding_time"]).timestamp()),
-            rate=Decimal(str(predicted_funding["predicted_funding_rate"])),
+            index_price=Decimal(str(general_info["indexPrice"])),
+            mark_price=Decimal(str(general_info["markPrice"])),
+            next_funding_utc_timestamp=int(pd.Timestamp(general_info["nextFundingTime"]).timestamp()),
+            rate=Decimal(str(general_info["fundingRate"])),
         )
         return funding_info
 
@@ -239,6 +238,7 @@ class BybitPerpetualAPIOrderBookDataSource(PerpetualAPIOrderBookDataSource):
     async def _request_complete_funding_info(self, trading_pair: str):
         tasks = []
         params = {
+            "category": "linear",
             "symbol": await self._connector.exchange_symbol_associated_to_pair(trading_pair=trading_pair),
         }
 
@@ -252,17 +252,6 @@ class BybitPerpetualAPIOrderBookDataSource(PerpetualAPIOrderBookDataSource):
             params=params,
             method=RESTMethod.GET,
         ))
-        endpoint_predicted = CONSTANTS.GET_PREDICTED_FUNDING_RATE_PATH_URL
-        url_predicted = web_utils.get_rest_url_for_endpoint(endpoint=endpoint_predicted, trading_pair=trading_pair, domain=self._domain)
-        limit_id_predicted = web_utils.get_rest_api_limit_id_for_endpoint(endpoint_predicted, trading_pair)
-        tasks.append(rest_assistant.execute_request(
-            url=url_predicted,
-            throttler_limit_id=limit_id_predicted,
-            params=params,
-            method=RESTMethod.GET,
-            is_auth_required=True
-        ))
-
         responses = await asyncio.gather(*tasks)
         return responses
 

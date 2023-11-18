@@ -831,7 +831,7 @@ class BybitPerpetualDerivative(PerpetualDerivativePyBase):
             is_auth_required=True,
             trading_pair=trading_pair,
         )
-        data: Dict[str, Any] = raw_response["result"][list][0]
+        data: Dict[str, Any] = raw_response["result"]["list"][0]
 
         if not data:
             # An empty funding fee/payment is retrieved.
@@ -841,7 +841,7 @@ class BybitPerpetualDerivative(PerpetualDerivativePyBase):
             position_size: Decimal = Decimal(str(data["size"]))
             payment: Decimal = funding_rate * position_size
             if bybit_utils.is_linear_perpetual(trading_pair):
-                timestamp: int = int(pd.Timestamp(data["fundingRateTimestamp"], tz="UTC").timestamp())
+                timestamp: int = int(pd.Timestamp(int(data["fundingRateTimestamp"]), tz="UTC").timestamp())
             else:
                 timestamp: int = int(data["fundingRateTimestamp"])
 
