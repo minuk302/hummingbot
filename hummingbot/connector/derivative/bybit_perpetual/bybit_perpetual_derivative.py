@@ -714,7 +714,7 @@ class BybitPerpetualDerivative(PerpetualDerivativePyBase):
 
     def _initialize_trading_pair_symbols_from_exchange_info(self, exchange_info: Dict[str, Any]):
         mapping = bidict()
-        for symbol_data in filter(bybit_utils.is_exchange_information_valid, exchange_info["result"]):
+        for symbol_data in filter(bybit_utils.is_exchange_information_valid, exchange_info["result"]["list"]):
             exchange_symbol = symbol_data["symbol"]
             base = symbol_data["baseCoin"]
             quote = symbol_data["quoteCoin"]
@@ -874,6 +874,11 @@ class BybitPerpetualDerivative(PerpetualDerivativePyBase):
             throttler_limit_id=limit_id if limit_id else path_url,
         )
         return resp
+
+    async def _make_trading_pairs_request(self) -> Any:
+        exchange_info = await self._api_get(path_url=self.trading_pairs_request_path,
+                                            params={"category": "linear"})
+        return exchange_info
 
     @staticmethod
     def _format_ret_code_for_print(ret_code: Union[str, int]) -> str:

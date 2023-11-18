@@ -58,7 +58,7 @@ async def get_current_server_time(
         throttler_limit_id=limit_id,
         method=RESTMethod.GET,
     )
-    server_time = float(response["time_now"])
+    server_time = float(response["time"])
 
     return server_time
 
