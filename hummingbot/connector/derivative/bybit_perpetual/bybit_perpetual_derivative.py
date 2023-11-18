@@ -1240,8 +1240,8 @@ class BybitPerpetualDerivative(ExchangeBase, PerpetualTrading):
             position_side = PositionSide.LONG if data.get("side") == "Buy" else PositionSide.SHORT
             unrealized_pnl = Decimal(if_None(0, data.get("unrealisedPnl")))
             entry_price = Decimal(if_None(0, data.get("avgEntryPrice")))
-            amount = Decimal(if_None(0, data.get("size")))
-            leverage = Decimal(if_None(0, data.get("leverage")))
+            amount = Decimal(if_None(0, str(data.get("size"))))
+            leverage = Decimal(if_None(0, str(data.get("leverage"))))
             pos_key = self.position_key(hb_trading_pair, position_side)
             if amount != s_decimal_0:
                 self._account_positions[pos_key] = Position(
