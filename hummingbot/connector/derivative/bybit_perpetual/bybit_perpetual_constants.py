@@ -5,13 +5,13 @@ EXCHANGE_NAME = "bybit_perpetual"
 
 REST_URLS = {"bybit_perpetual_main": "https://api.bybit.com/",
              "bybit_perpetual_testnet": "https://api-testnet.bybit.com/"}
-WSS_NON_LINEAR_PUBLIC_URLS = {"bybit_perpetual_main": "wss://stream.bybit.com/realtime",
-                              "bybit_perpetual_testnet": "wss://stream-testnet.bybit.com/realtime"}
+WSS_NON_LINEAR_PUBLIC_URLS = {"bybit_perpetual_main": "wss://stream.bybit.com/v5/public/linear",
+                              "bybit_perpetual_testnet": "wss://stream-testnet.bybit.com/v5/public/linear"}
 WSS_NON_LINEAR_PRIVATE_URLS = WSS_NON_LINEAR_PUBLIC_URLS
-WSS_LINEAR_PUBLIC_URLS = {"bybit_perpetual_main": "wss://stream.bybit.com/realtime_public",
-                          "bybit_perpetual_testnet": "wss://stream-testnet.bybit.com/realtime_public"}
-WSS_LINEAR_PRIVATE_URLS = {"bybit_perpetual_main": "wss://stream.bybit.com/realtime_private",
-                           "bybit_perpetual_testnet": "wss://stream-testnet.bybit.com/realtime_private"}
+WSS_LINEAR_PUBLIC_URLS = {"bybit_perpetual_main": "wss://stream.bybit.com/v5/public/linear",
+                          "bybit_perpetual_testnet": "wss://stream-testnet.bybit.com/v5/public/linear"}
+WSS_LINEAR_PRIVATE_URLS = {"bybit_perpetual_main": "wss://stream.bybit.com/v5/private",
+                           "bybit_perpetual_testnet": "wss://stream-testnet.bybit.com/v5/private"}
 
 REST_API_VERSION = "v5"
 
@@ -79,7 +79,7 @@ FUNDING_SETTLEMENT_DURATION = (5, 5)  # seconds before snapshot, seconds after s
 
 # WebSocket Public Endpoints
 WS_PING_REQUEST = "ping"
-WS_ORDER_BOOK_EVENTS_TOPIC = "orderBook_200.100ms"
+WS_ORDER_BOOK_EVENTS_TOPIC = "orderbook.200"
 WS_TRADES_TOPIC = "trade"
 WS_INSTRUMENTS_INFO_TOPIC = "instrument_info.100ms"
 WS_AUTHENTICATE_USER_ENDPOINT_NAME = "auth"
