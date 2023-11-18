@@ -289,6 +289,7 @@ class BybitPerpetualAPIOrderBookDataSource(PerpetualAPIOrderBookDataSource):
 
     async def _request_order_book_snapshot(self, trading_pair: str) -> Dict[str, Any]:
         params = {
+            "category": "linear",
             "symbol": await self._connector.exchange_symbol_associated_to_pair(trading_pair=trading_pair),
         }
 
