@@ -183,7 +183,7 @@ class BybitPerpetualDerivative(PerpetualDerivativePyBase):
             is_auth_required=True,
             trading_pair=tracked_order.trading_pair,
         )
-        response_code = cancel_result["ret_code"]
+        response_code = cancel_result["retCode"]
 
         if response_code != CONSTANTS.RET_CODE_OK:
             if response_code == CONSTANTS.RET_CODE_ORDER_NOT_EXISTS:
@@ -228,8 +228,8 @@ class BybitPerpetualDerivative(PerpetualDerivativePyBase):
             **kwargs,
         )
 
-        if resp["ret_code"] != CONSTANTS.RET_CODE_OK:
-            formatted_ret_code = self._format_ret_code_for_print(resp['ret_code'])
+        if resp["retCode"] != CONSTANTS.RET_CODE_OK:
+            formatted_ret_code = self._format_ret_code_for_print(resp['retCode'])
             raise IOError(f"Error submitting order {order_id}: {formatted_ret_code} - {resp['ret_msg']}")
 
         return str(resp["result"]["order_id"]), self.current_timestamp
@@ -387,22 +387,25 @@ class BybitPerpetualDerivative(PerpetualDerivativePyBase):
         """
         Calls REST API to update total and available balances
         """
-        wallet_balance: Dict[str, Dict[str, Any]] = await self._api_get(
+        wallet_balance: List[Dict[str, Any]] = await self._api_get(
             path_url=CONSTANTS.GET_WALLET_BALANCE_PATH_URL,
+            params={"accountType": "UNIFIED"},
             is_auth_required=True,
         )
 
-        if wallet_balance["ret_code"] != CONSTANTS.RET_CODE_OK:
-            formatted_ret_code = self._format_ret_code_for_print(wallet_balance['ret_code'])
+        if wallet_balance["retCode"] != CONSTANTS.RET_CODE_OK:
+            formatted_ret_code = self._format_ret_code_for_print(wallet_balance['retCode'])
             raise IOError(f"{formatted_ret_code} - {wallet_balance['ret_msg']}")
 
         self._account_available_balances.clear()
         self._account_balances.clear()
 
         if wallet_balance["result"] is not None:
-            for asset_name, balance_json in wallet_balance["result"].items():
-                self._account_balances[asset_name] = Decimal(str(balance_json["wallet_balance"]))
-                self._account_available_balances[asset_name] = Decimal(str(balance_json["available_balance"]))
+            for balance_json in wallet_balance["result"]["list"]:
+                for coin_balance_json in balance_json["coin"]:
+                    asset_name = coin_balance_json["coin"]
+                    self._account_balances[asset_name] = Decimal(str(coin_balance_json["walletBalance"]))
+                    self._account_available_balances[asset_name] = Decimal(str(coin_balance_json["availableToWithdraw"]))
 
     async def _update_positions(self):
         """
@@ -773,7 +776,7 @@ class BybitPerpetualDerivative(PerpetualDerivativePyBase):
                 is_auth_required=True,
             )
 
-            response_code = response["ret_code"]
+            response_code = response["retCode"]
 
             if response_code not in [CONSTANTS.RET_CODE_OK, CONSTANTS.RET_CODE_MODE_NOT_MODIFIED]:
                 formatted_ret_code = self._format_ret_code_for_print(response_code)
@@ -810,10 +813,10 @@ class BybitPerpetualDerivative(PerpetualDerivativePyBase):
 
         success = False
         msg = ""
-        if resp["ret_code"] == CONSTANTS.RET_CODE_OK or (resp["ret_code"] == CONSTANTS.RET_CODE_LEVERAGE_NOT_MODIFIED and resp["ret_msg"] == "leverage not modified"):
+        if resp["retCode"] == CONSTANTS.RET_CODE_OK or (resp["retCode"] == CONSTANTS.RET_CODE_LEVERAGE_NOT_MODIFIED and resp["ret_msg"] == "leverage not modified"):
             success = True
         else:
-            formatted_ret_code = self._format_ret_code_for_print(resp['ret_code'])
+            formatted_ret_code = self._format_ret_code_for_print(resp['retCode'])
             msg = f"{formatted_ret_code} - {resp['ret_msg']}"
 
         return success, msg
